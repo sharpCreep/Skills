@@ -33,6 +33,14 @@ public final class CombatSkill extends Skill {
     public final ImpalerTalent impalerTalent = new ImpalerTalent();
     public final ToxicistTalent toxicistTalent = new ToxicistTalent();
     public final ToxicFurorTalent toxicFurorTalent = new ToxicFurorTalent();
+    // Combat update
+    public final HeadtakerTalent headtakerTalent = new HeadtakerTalent();
+    public final HeavyStrikeTalent heavyStrikeTalent = new HeavyStrikeTalent();
+    public final OverkillTalent overkillTalent = new OverkillTalent();
+    public final LeapTalent leapTalent = new LeapTalent();
+    public final FirestarterTalent firestarterTalent = new FirestarterTalent();
+    public final ViciousMomentumTalent viciousMomentumTalent = new ViciousMomentumTalent();
+    public final BladeTempestTalent bladeTempestTalent = new BladeTempestTalent();
 
     protected static final long CHUNK_KILL_DECAY_TIME = Duration.ofMinutes(5).toMillis();
 
@@ -46,25 +54,51 @@ public final class CombatSkill extends Skill {
         Bukkit.getPluginManager().registerEvents(combatListener, skillsPlugin());
     }
 
+    /**
+     * Mob damages a player, talent precedence.
+     */
     protected void onMobDamagePlayer(Player player, Mob mob, EntityDamageByEntityEvent event) {
         searingTalent.onMobDamagePlayer(player, mob, event);
         denialTalent.onMobDamagePlayer(player, mob, event);
     }
 
+    /**
+     * Player damages a mob, talent precedence.
+     */
     protected void onPlayerDamageMob(Player player, Mob mob, EntityDamageByEntityEvent event) {
         final ItemStack item = player.getInventory().getItemInMainHand();
-        pyromaniacTalent.onPlayerDamageMob(player, mob, item, event);
+        // utility before damage calculation
         denialTalent.onPlayerDamageMob(player, mob, item, event);
-        denialTalent.onPlayerDamageMob(player, mob, item, event);
+        denialTalent.onPlayerDamageMob(player, mob, item, event); //is it needed twice?
+        firestarterTalent.onPlayerDamageMob(player, mob, item, event);
+        viciousMomentumTalent.onPlayerDamageMob(player, mob, item, event);
+        // additive damage
         ironAgeTalent.onPlayerDamageMob(player, mob, item, event);
         executionerTalent.onPlayerDamageMob(player, mob, item, event);
         impalerTalent.onPlayerDamageMob(player, mob, item, event);
         toxicistTalent.onPlayerDamageMob(player, mob, item, event);
         toxicFurorTalent.onPlayerDamageMob(player, mob, item, event);
+        overkillTalent.onPlayerDamageMob(player, mob, item, event); // add damage
+        // multiplicative damage
+        bladeTempestTalent.onPlayerDamageMob(player, mob, item, event); // +1% per charge
+        heavyStrikeTalent.onPlayerDamageMob(player, mob, item, event);
+        // multiplicative after damage reduction effects
+        pyromaniacTalent.onPlayerDamageMob(player, mob, item, event);
+        // utility after damage calculation
+        overkillTalent.onPlayerDamageMob(player, mob, item, event); // store damage
+        headtakerTalent.onPlayerDamageMob(player, mob, item, event);
     }
 
     /**
-     * Give skill points when a player kills a mob.
+     * Player damages a mob with a sweep attack, talent precedence.
+     */
+    protected void onPlayerSweepMob(Player player, Mob mob, EntityDamageByEntityEvent event) {
+        final ItemStack item = player.getInventory().getItemInMainHand();
+        bladeTempestTalent.onPlayerDamageMob(player, mob, item, event);
+    }
+
+    /**
+     * Player kills a mob, talent precedence. Give skill points and money.
      */
     protected void onMeleeKill(Player player, Mob mob, EntityDeathEvent event) {
         godModeTalent.onMeleeKill(player, mob);

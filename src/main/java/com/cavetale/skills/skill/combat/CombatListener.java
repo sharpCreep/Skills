@@ -55,6 +55,11 @@ final class CombatListener implements Listener {
                     combatSkill.onPlayerDamageMob(player, mob, event);
                 }
                 break;
+            case ENTITY_SWEEP_ATTACK:
+                if (event.getDamager() instanceof Player player) {
+                    combatSkill.onPlayerSweepMob(player, mob, event);
+                }
+                break;
             default: return;
             }
         }

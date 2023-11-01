@@ -55,6 +55,26 @@ public enum TalentType implements ComponentLike {
     TOXICIST(COMBAT, TalentType.DENIAL, 2, v(7, 2)),
     TOXIC_FUROR(COMBAT, TalentType.TOXICIST, 3, v(8, 2)),
     GOD_MODE(COMBAT, TalentType.DENIAL, 3, v(7, 3)),
+    //Combat update
+    // TALENTNAME(SKILL, dependence, TPcost, v(inv, Slot)),
+    // (COMBAT, null, 1, v(, )),
+    HEADTAKER(COMBAT, null, 1, v(1, 1)),
+    HEAVY_STRIKE(COMBAT, null, 1, v(2, 1)),
+    OVERKILL(COMBAT, null, 1, v(3, 1)),
+    LEAP(COMBAT, null, 1, v(4, 1)),
+    FIRESTARTER(COMBAT, PYROMANIAC, 1, v(5, 1)),
+    VICIOUS_MOMENTUM(COMBAT, null, 1, v(6, 1)),
+    BLADE_TEMPEST(COMBAT, null, 1, v(7, 1)),
+/*    STORM_COLLAPSE(COMBAT, BLADE_TEMPEST, 1, v(8, 1)),
+    DUAL_WIELDING(COMBAT, null, 1, v(1, 3)),
+    RELENTLESS_ASSAULT(COMBAT, DUAL_WIELDING, 1, v(1, 4)),
+    WEAPON_ARTISTRY(COMBAT, RELENTLESS_ASSAULT, 1, v(1, 5)),
+    SHIELD_CHARGE(COMBAT, null, 1, v(2, 3)),
+    VENGEANCE(COMBAT, null, 1, v(2, 4)),
+    FENDERS_GRASP(COMBAT, null, 1, v(2, 5)),
+*/    
+    
+    
 
     // Archery
 
