@@ -63,41 +63,36 @@ public final class ItemCheck {
     }*/
 
     public static boolean isSword(ItemStack item) {
-        if (item == null) return false;
-        return (MaterialTags.SWORDS.isTagged(item.getType()) ? true : false);
+        return item != null && MaterialTags.SWORDS.isTagged(item.getType()) ? true : false;
     }
 
     public static boolean isAxe(ItemStack item) {
-        if (item == null) return false;
-        return (MaterialTags.AXES.isTagged(item.getType()) ? true : false);
+        return item != null && MaterialTags.AXES.isTagged(item.getType()) ? true : false;
     }
 
     public static boolean isMeleeWeapon(ItemStack item) {
-        return ((isAxe(item) || isSword(item)) ? true : false);
+        return isAxe(item) || isSword(item) ? true : false;
     }
 
     public static boolean isCombatWeapon(ItemStack item) {
-        if (item == null) return false;
-        return ((isMeleeWeapon(item) || (item.getType() == Material.TRIDENT)) ? true : false);
+        return item != null && (isMeleeWeapon(item) || (item.getType() == Material.TRIDENT)) ? true : false;
     }
 
     public static boolean isCombatTool(ItemStack item) {
-        if (item == null) return false;
-        return ((isCombatWeapon(item)
+        return item != null && (isCombatWeapon(item)
             || MaterialTags.HOES.isTagged(item.getType())
             || MaterialTags.PICKAXES.isTagged(item.getType())
-            || MaterialTags.SHOVELS.isTagged(item.getType())) ? true : false);
+            || MaterialTags.SHOVELS.isTagged(item.getType())) ? true : false;
     }
 
 //might not be worth it, this is usually followed up with getting the level
 //+ to use this Enchantment is already imported
     public static boolean hasEnchantment(ItemStack item, Enchantment enchantment) {
-        if (item == null) return false;
-        return (item.getEnchantmentLevel(enchantment) > 0 ? true : false);
+        return item != null && item.getEnchantmentLevel(enchantment) > 0 ? true : false;
     }
 
     public static double getBaseAttackDamage(ItemStack item) {
-        return (isCombatTool(item)) ? weaponDamageMap.get(item.getType()) : 1;
+        return isCombatTool(item) ? weaponDamageMap.get(item.getType()) : 1;
     }
 
 

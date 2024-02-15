@@ -73,15 +73,23 @@ public final class BladeTempestTalent extends Talent {
     public ItemStack createIcon() {
         return createIcon(Material.EYE_ARMOR_TRIM_SMITHING_TEMPLATE);
     }
-    
+
+    protected void onPlayerDamageMob(Player player, Mob mob, ItemStack item, EntityDamageEvent event) {
+        if (!isPlayerEnabled(player)) return;
+        if (!isSword(item)) return;
+        Session session = sessionOf(player);
+        if (sessionOf(player).isDebugMode()) {
+            player.sendMessage(talentType + " sourceless damage assigned to you!");
+        }
+        if (session.combat.isBladeTempestHitInProgress()) {
+            event.setDamage(event.getDamage() * (1 + session.combat.getBladeTempestCharges() * chargeMultiplier));
+        }
+    }
+
     protected void onPlayerDamageMob(Player player, Mob mob, ItemStack item, EntityDamageByEntityEvent event) {
         if (!isPlayerEnabled(player)) return;
         if (!isSword(item)) return;
         Session session = sessionOf(player);
-        if (session.combat.isBladeTempestHitInProgress()) {
-            event.setDamage(event.getDamage() * (1 + session.combat.getBladeTempestCharges() * chargeMultiplier));
-            return;
-        }
         //if requirements valid & sweep damage & not from tempest
         if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
         if (session.combat.getBladeTempestCooldown() > System.currentTimeMillis()) return; //on CD, nothing to do
@@ -120,7 +128,7 @@ public final class BladeTempestTalent extends Talent {
         session.combat.setBladeTempestNextTask(bladeTempestActivation);
     }
 
-    protected void bladeTempestExpireTask(Player player) {
+    protected static void bladeTempestExpireTask(Player player) {
         Session session = sessionOf(player);
         BukkitTask task = session.combat.getBladeTempestNextTask();
         session.combat.setBladeTempestNextTask(null);
@@ -128,7 +136,7 @@ public final class BladeTempestTalent extends Talent {
         session.combat.setBladeTempestEndTime(0);
         session.combat.setBladeTempestHitInProgress(false); //this should not be needed
         if (sessionOf(player).isDebugMode()) {
-            player.sendMessage(talentType + " expired");
+            player.sendMessage("Blade Tempest expired"); //talentType - non-static variable talentType cannot be referenced from a static context
         }
         if (task != null) task.cancel(); //can cancel itself, task shouldn't be null
     }
@@ -160,11 +168,10 @@ public final class BladeTempestTalent extends Talent {
         session.combat.setBladeTempestHitInProgress(true);
         //deal damage to all targets, set dmg cause
         for (Damageable target : bladeTempestTargets) {
-            EntityDamageByEntityEvent edbee = new EntityDamageByEntityEvent(player, target, EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK, damage);
             ((LivingEntity)target).setNoDamageTicks(0);
-            target.damage(damage, player); //always entity_attack first, is there a point in overwriting it here?
-            target.setLastDamageCause(edbee);
-            ((LivingEntity)target).setNoDamageTicks(0);
+            CombatSkill.combatTagMob((Mob) target, player);
+            target.damage(damage, player);
+            ((LivingEntity)target).setNoDamageTicks(0); //could save initial value and reset to that (BT deals damage w/o interruption)
         }
         //release sweeping
         session.combat.setBladeTempestHitInProgress(false);
@@ -177,7 +184,7 @@ public final class BladeTempestTalent extends Talent {
             }
             BukkitTask bladeTempestExpire = scheduler.runTask(skillsPlugin(), () -> {
                 bladeTempestExpireTask(player);
-            });
+            });//why schedule and not just call the function?
             session.combat.setBladeTempestNextTask(bladeTempestExpire);
             session.combat.setBladeTempestExpiring(true);
             return;

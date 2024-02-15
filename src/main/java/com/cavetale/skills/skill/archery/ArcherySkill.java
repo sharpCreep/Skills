@@ -2,12 +2,19 @@ package com.cavetale.skills.skill.archery;
 
 import com.cavetale.skills.session.Session;
 import com.cavetale.skills.skill.Skill;
+import com.cavetale.skills.skill.Skills;
 import com.cavetale.skills.skill.SkillType;
+import com.cavetale.skills.skill.combat.CombatSkill;
 import com.cavetale.skills.skill.combat.CombatReward;
+import com.cavetale.skills.util.Players;
+import com.cavetale.skills.util.UUIDDataType;
+import java.util.UUID;
+import java.util.Set;
 import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
@@ -22,6 +29,9 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataAdapterContext;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import static com.cavetale.skills.SkillsPlugin.moneyBonusPercentage;
 import static com.cavetale.skills.SkillsPlugin.sessionOf;
 import static com.cavetale.skills.SkillsPlugin.skillsPlugin;
@@ -62,6 +72,19 @@ public final class ArcherySkill extends Skill implements Listener {
     public final SpectralInfinityTalent spectralInfinityTalent = new SpectralInfinityTalent();
     public final GlowMarkTalent glowMarkTalent = new GlowMarkTalent();
 
+    // TODO Duplicated from CombatSkill.java, needs to be moved to Skill.java from both
+    // Combat PDC keys
+    public static final NamespacedKey COMBAT_RECENT_HIT_BY = NamespacedKey.fromString("skills:combat_recent_hit_by"); // last damaged by player UUID
+    public static final NamespacedKey COMBAT_TIME = NamespacedKey.fromString("skills:combat_time");
+    public static final NamespacedKey COMBAT_TAGLIST = NamespacedKey.fromString("skills:combat_taglist"); // points to PDC with player UUIDs
+    public static final String COMBAT_TAGGED_BY = "skills:combat_tagged_by_"; // prefix used for keys in taglist
+    // Archery PDC keys
+    public static final NamespacedKey ARCHERY_RECENT_HIT_BY = NamespacedKey.fromString("skills:archery_recent_hit_by");
+    public static final NamespacedKey ARCHERY_TIME = NamespacedKey.fromString("skills:archery_time");
+    public static final NamespacedKey ARCHERY_TAGLIST = NamespacedKey.fromString("skills:archery_taglist");
+    public static final String ARCHERY_TAGGED_BY = "skills:archery_tagged_by_";
+
+
     public ArcherySkill() {
         super(SkillType.ARCHERY);
     }
@@ -71,14 +94,56 @@ public final class ArcherySkill extends Skill implements Listener {
     }
 
     private void onArrowKill(Player player, AbstractArrow arrow, Mob mob, EntityDeathEvent event) {
-        if (!arrow.isShotFromCrossbow()) {
-            archerZoneDeathTalent.onBowKill(player, arrow, mob);
-        }
-        Session session = sessionOf(player);
         CombatReward reward = addKillAndCheckCooldown(mob.getLocation())
             ? null
             : combatReward(mob);
-        final boolean hasMagnet = arrowMagnetTalent.isPlayerEnabled(player);
+        if (arrow == null) {
+            // not killed by an arrow, but most recent player combat interaction was archery
+            // give SP
+            PersistentDataContainer pdc = mob.getPersistentDataContainer();
+            PersistentDataContainer pdc_taglist = pdc.get(CombatSkill.ARCHERY_TAGLIST, PersistentDataType.TAG_CONTAINER);
+            Set<NamespacedKey> taglist = pdc_taglist.getKeys();
+            int rewardShare = (reward.sp - 1) / taglist.size() + 1;
+            for (NamespacedKey key : taglist) {
+                Player tagger = Bukkit.getPlayer(pdc_taglist.get(key, new UUIDDataType()));
+                if (/*TODO*//*CombatSkill.checkPlayer(tagger)*/tagger != null && tagger.isConnected() && Players.playMode(tagger) && sessionOf(tagger).isEnabled()) sessionOf(tagger).addSkillPoints(SkillType.ARCHERY, rewardShare);
+            }
+        } else {
+            if (!arrow.isShotFromCrossbow()) {
+                archerZoneDeathTalent.onBowKill(player, arrow, mob);
+            }
+            final boolean hasMagnet = arrowMagnetTalent.isPlayerEnabled(player);
+            if (reward != null) {
+                if (reward.money > 0) {
+                    int bonus = sessionOf(player).getMoneyBonus(skillType);
+                    double factor = 1.0 + 0.01 * moneyBonusPercentage(bonus);
+                    Location location = hasMagnet ? player.getLocation() : mob.getLocation();
+                    dropMoney(player, location, reward.money * factor);
+                }
+                event.setDroppedExp(3 * event.getDroppedExp() + sessionOf(player).getExpBonus(SkillType.ARCHERY));
+            }
+            if (hasMagnet) {
+                int exp = event.getDroppedExp();
+                event.setDroppedExp(0);
+                player.giveExp(exp, true);
+                List<ItemStack> drops = List.copyOf(event.getDrops());
+                event.getDrops().clear();
+                for (ItemStack drop : drops) {
+                    Item item = player.getWorld().dropItem(player.getLocation(), drop);
+                    item.setPickupDelay(0);
+                    item.setOwner(player.getUniqueId());
+                }
+            }
+        }
+/*        if (arrow != null && !arrow.isShotFromCrossbow()) {
+            archerZoneDeathTalent.onBowKill(player, arrow, mob);
+        }*/
+//        combat.checkPlayer(player)
+//        Session session = sessionOf(player);
+/*        CombatReward reward = addKillAndCheckCooldown(mob.getLocation())
+            ? null
+            : combatReward(mob);*/
+/*        final boolean hasMagnet = arrowMagnetTalent.isPlayerEnabled(player);
         if (reward != null) {
             session.addSkillPoints(skillType, reward.sp);
             if (reward.money > 0) {
@@ -100,10 +165,12 @@ public final class ArcherySkill extends Skill implements Listener {
                 item.setPickupDelay(0);
                 item.setOwner(player.getUniqueId());
             }
-        }
+        }*/
     }
 
     private void onArrowDamage(Player player, AbstractArrow arrow, Mob mob, EntityDamageByEntityEvent event) {
+        //TODO: tag hit mob
+        archeryTagMob(mob, player);
         if (!arrow.isShotFromCrossbow()) {
             archerZoneTalent.onBowDamage(player, arrow, mob);
             bonusArrowTalent.onBowDamage(player, arrow, mob);
@@ -135,6 +202,32 @@ public final class ArcherySkill extends Skill implements Listener {
         if (!(event.getEntity() instanceof Mob)) return;
         Mob mob = (Mob) event.getEntity();
         if (!mob.isDead()) return;
+        // move to getting killer from PDC, + if it is an archery kill
+        PersistentDataContainer pdc = mob.getPersistentDataContainer();
+        if (!pdc.has(CombatSkill.COMBAT_RECENT_HIT_BY)
+            || !pdc.has(CombatSkill.ARCHERY_RECENT_HIT_BY)) return; // no player contribution
+        boolean archeryKill = wasLastHitArchery(pdc);
+        Player killer = null;
+        if (archeryKill) {
+            UUID uuid = pdc.get(CombatSkill.ARCHERY_RECENT_HIT_BY, new UUIDDataType());
+            killer = Bukkit.getPlayer(uuid);
+        }
+// TODO: is an archeryKill flag needed to be passed on? right now arrow being null is used
+        switch (mob.getLastDamageCause().getCause()) {
+        case PROJECTILE:
+            EntityDamageByEntityEvent edbee = (EntityDamageByEntityEvent) mob.getLastDamageCause();
+            if (edbee.getDamager() instanceof AbstractArrow arrow
+                && !(arrow instanceof Trident)
+                && arrow.getShooter() instanceof Player player
+                && isPlayerEnabled(player)) {
+                onArrowKill(player, arrow, mob, event);
+            } else {
+                onArrowKill(killer, null, mob, event);
+            }
+            return;
+        default: break; // TODO: give SP in all other cases too - separate out SP rewards?
+        }
+        /*
         if (!(mob.getLastDamageCause() instanceof EntityDamageByEntityEvent edbee)) return;
         switch (edbee.getCause()) {
         case PROJECTILE:
@@ -146,7 +239,7 @@ public final class ArcherySkill extends Skill implements Listener {
             }
             return;
         default: break;
-        }
+        }*/
     }
 
     /**
@@ -228,5 +321,31 @@ public final class ArcherySkill extends Skill implements Listener {
      */
     protected void onShootCrossbow(Player player, AbstractArrow arrow) {
         crossbowHailTalent.onShootCrossbow(player, arrow);
+    }
+
+    protected static void archeryTagMob(Mob mob, Player player) {
+        if (!mob.isValid()) return; // prevent tagging a dying mob; should never happen
+        PersistentDataContainer pdc = mob.getPersistentDataContainer();
+        pdc.set(CombatSkill.ARCHERY_RECENT_HIT_BY, new UUIDDataType(), player.getUniqueId());
+        pdc.set(CombatSkill.ARCHERY_TIME, PersistentDataType.LONG, System.currentTimeMillis());
+        PersistentDataContainer pdc_taglist = null;
+        if (!pdc.has(CombatSkill.ARCHERY_TAGLIST)) {
+            pdc_taglist = pdc.getAdapterContext().newPersistentDataContainer();
+            pdc.set(CombatSkill.ARCHERY_TAGLIST, PersistentDataType.TAG_CONTAINER, pdc_taglist);
+        } else {
+            pdc_taglist = pdc.get(CombatSkill.ARCHERY_TAGLIST, PersistentDataType.TAG_CONTAINER);
+        }
+        pdc_taglist.set(NamespacedKey.fromString(CombatSkill.ARCHERY_TAGGED_BY + player.getName()), new UUIDDataType(), player.getUniqueId());
+    }
+
+    // nearly a duplicate of CombatSkill.wasLastHitCombat(pdc) TODO: move both to Skill
+    public boolean wasLastHitArchery(PersistentDataContainer pdc) {
+        if (!pdc.has(ARCHERY_TIME)) return false;
+        if (pdc.has(COMBAT_TIME)) {
+            long combatTimeStamp = pdc.get(COMBAT_TIME, PersistentDataType.LONG);
+            long archeryTimeStamp = pdc.get(ARCHERY_TIME, PersistentDataType.LONG);
+            return archeryTimeStamp > combatTimeStamp;
+        }
+        return true;
     }
 }

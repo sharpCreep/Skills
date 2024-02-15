@@ -1,14 +1,20 @@
 package com.cavetale.skills.skill.combat;
 
 import com.cavetale.skills.util.Players;
+import com.cavetale.skills.util.UUIDDataType;
 import lombok.RequiredArgsConstructor;
+import java.util.UUID;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;//
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.persistence.PersistentDataContainer;
+import static com.cavetale.skills.SkillsPlugin.skillsPlugin;//
 
 @RequiredArgsConstructor
 final class CombatListener implements Listener {
@@ -16,21 +22,35 @@ final class CombatListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     protected void onEntityDeath(EntityDeathEvent event) {
+        // mob validity
         if (!(event.getEntity() instanceof Mob)) return;
         Mob mob = (Mob) event.getEntity();
         if (!mob.isDead()) return;
-        Player killer = mob.getKiller();
-        if (killer == null) return;
-        if (!(mob.getLastDamageCause() instanceof EntityDamageByEntityEvent edbee)) return;
-        switch (edbee.getCause()) {
-        case ENTITY_ATTACK:
-        case ENTITY_SWEEP_ATTACK:
-            if (!killer.equals(edbee.getDamager())) return;
-            combatSkill.onMeleeKill(killer, mob, event);
-            return;
-        default: break;
+        // is player kill?
+        PersistentDataContainer pdc = mob.getPersistentDataContainer();
+        if (!pdc.has(combatSkill.COMBAT_RECENT_HIT_BY)
+            || !pdc.has(combatSkill.ARCHERY_RECENT_HIT_BY)) return; // no player contribution
+        boolean combatKill = combatSkill.wasLastHitCombat(pdc);
+        // get player
+        Player killer = null;
+        if (combatKill) {
+            UUID uuid = pdc.get(combatSkill.COMBAT_RECENT_HIT_BY, new UUIDDataType());
+            killer = Bukkit.getPlayer(uuid);
         }
+        combatSkill.onMeleeKill(killer, mob, combatKill, event);
     }
+
+/*    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    protected void onEntityDamage(EntityDamageEvent event) {
+        //skillsPlugin().getServer().broadcastMessage("<EDE> dmg: " + event.getDamage() + " cause: " + event.getCause());
+        switch (event.getCause()) {
+        case CUSTOM:
+            if (event.getEntity() instanceof Mob mob)
+                combatSkill.onCustomDamage(mob, event);
+            break;
+        default: return;
+        }
+    }*/
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     protected void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
