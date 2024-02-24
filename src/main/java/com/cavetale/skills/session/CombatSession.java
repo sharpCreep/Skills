@@ -19,14 +19,14 @@ public final class CombatSession extends SkillSession {
     @Setter protected boolean overkillStore = false;
     /** LeapTalent cooldown */
     @Setter protected long leapCooldown = 0;
-    /** BladeTempestTalent charges, times, trigger gating, scheduled task */
+    /** BladeTempestTalent charges, times, trigger gating */
     @Setter protected int bladeTempestCharges = 0;
     @Setter protected long bladeTempestEndTime = 0;
-    @Setter protected long bladeTempestLastTime = 0;
     @Setter protected long bladeTempestCooldown = 0;
-    @Setter protected boolean bladeTempestHitInProgress = false;
-    @Setter protected boolean bladeTempestExpiring = false;
-    @Setter protected BukkitTask bladeTempestNextTask = null;
+    @Setter protected boolean bladeTempestHit = false;
+    /** DualWielding lock, delay */
+    @Setter protected long dualWieldingLock = 0;
+    @Setter protected long dualWieldingDelay = 0;
 
     protected CombatSession(final Session session) {
         super(session, SkillType.COMBAT);

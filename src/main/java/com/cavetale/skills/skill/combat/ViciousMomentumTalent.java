@@ -15,8 +15,8 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public final class ViciousMomentumTalent extends Talent {
-    static int maxSpeedLevel = 2;
-    static int speedDuration = 5;
+    static int maxSpeedLevel = 1;
+    static int speedDuration = 20;
 
     protected ViciousMomentumTalent() {
         super(TalentType.VICIOUS_MOMENTUM);
@@ -29,8 +29,8 @@ public final class ViciousMomentumTalent extends Talent {
 
     @Override
     public List<String> getRawDescription() {
-        return List.of("Melee hits give you Swiftness",
-                       "Fully charged hits with melee weapons grant Swiftness for "
+        return List.of("Melee kills give you Swiftness",
+                       "Kills with melee weapons grant Swiftness for "
                        + speedDuration + " seconds. If you already have Swiftness,"
                        + " you gain a higher level, up to Swiftness " + maxSpeedLevel);
     }
@@ -40,12 +40,9 @@ public final class ViciousMomentumTalent extends Talent {
         return createIcon(Material.DIAMOND);
     }
 
-    protected void onPlayerDamageMob(Player player, Mob mob, ItemStack item, EntityDamageByEntityEvent event) {
+    protected void onMeleeKill(Player player, Mob mob) {
         if (!isPlayerEnabled(player)) return;
-        if (item == null || event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK
-            || !(MaterialTags.AXES.isTagged(item.getType()) || MaterialTags.SWORDS.isTagged(item.getType()))
-            || player.getAttackCooldown() != 1.0) return;
-        int speedLevel = 0;
+        int speedLevel = -1;
         if (player.hasPotionEffect(PotionEffectType.SPEED)) speedLevel = Math.min(player.getPotionEffect(PotionEffectType.SPEED).getAmplifier(), maxSpeedLevel);
         speedLevel = (speedLevel < maxSpeedLevel) ? speedLevel + 1 : maxSpeedLevel;
         PotionEffect effect = new PotionEffect(PotionEffectType.SPEED, speedDuration * 20, speedLevel, false, false, true);

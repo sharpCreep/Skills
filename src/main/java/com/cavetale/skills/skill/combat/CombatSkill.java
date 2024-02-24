@@ -41,6 +41,10 @@ public final class CombatSkill extends Skill {
     public final FirestarterTalent firestarterTalent = new FirestarterTalent();
     public final ViciousMomentumTalent viciousMomentumTalent = new ViciousMomentumTalent();
     public final BladeTempestTalent bladeTempestTalent = new BladeTempestTalent();
+    public final StormCollapseTalent stormCollapseTalent = new StormCollapseTalent();
+    public final DualWieldingTalent dualWieldingTalent = new DualWieldingTalent();
+    public final RelentlessAssaultTalent relentlessAssaultTalent = new RelentlessAssaultTalent();
+    public final WeaponArtistryTalent weaponArtistryTalent = new WeaponArtistryTalent();
 
     protected static final long CHUNK_KILL_DECAY_TIME = Duration.ofMinutes(5).toMillis();
 
@@ -68,10 +72,11 @@ public final class CombatSkill extends Skill {
     protected void onPlayerDamageMob(Player player, Mob mob, EntityDamageByEntityEvent event) {
         final ItemStack item = player.getInventory().getItemInMainHand();
         // utility before damage calculation
+        relentlessAssaultTalent.onPlayerDamageMob(player, mob, item, event);
         denialTalent.onPlayerDamageMob(player, mob, item, event);
         denialTalent.onPlayerDamageMob(player, mob, item, event); //is it needed twice?
         firestarterTalent.onPlayerDamageMob(player, mob, item, event);
-        viciousMomentumTalent.onPlayerDamageMob(player, mob, item, event);
+        stormCollapseTalent.onPlayerDamageMob(player, mob, item, event);
         // additive damage
         ironAgeTalent.onPlayerDamageMob(player, mob, item, event);
         executionerTalent.onPlayerDamageMob(player, mob, item, event);
@@ -79,6 +84,7 @@ public final class CombatSkill extends Skill {
         toxicistTalent.onPlayerDamageMob(player, mob, item, event);
         toxicFurorTalent.onPlayerDamageMob(player, mob, item, event);
         overkillTalent.onPlayerDamageMob(player, mob, item, event); // add damage
+        weaponArtistryTalent.onPlayerDamageMob(player, mob, item, event);
         // multiplicative damage
         bladeTempestTalent.onPlayerDamageMob(player, mob, item, event); // +1% per charge
         heavyStrikeTalent.onPlayerDamageMob(player, mob, item, event);
@@ -87,6 +93,7 @@ public final class CombatSkill extends Skill {
         // utility after damage calculation
         overkillTalent.onPlayerDamageMob(player, mob, item, event); // store damage
         headtakerTalent.onPlayerDamageMob(player, mob, item, event);
+        dualWieldingTalent.onPlayerDamageMob(player, mob, item, event); // weapon swap
     }
 
     /**
@@ -102,6 +109,7 @@ public final class CombatSkill extends Skill {
      */
     protected void onMeleeKill(Player player, Mob mob, EntityDeathEvent event) {
         godModeTalent.onMeleeKill(player, mob);
+        viciousMomentumTalent.onMeleeKill(player, mob);
         CombatReward reward = combatReward(mob);
         if (reward == null) return;
         if (!Players.playMode(player)) return;

@@ -65,12 +65,12 @@ public enum TalentType implements ComponentLike {
     FIRESTARTER(COMBAT, PYROMANIAC, 1, v(5, 1)),
     VICIOUS_MOMENTUM(COMBAT, null, 1, v(6, 1)),
     BLADE_TEMPEST(COMBAT, null, 1, v(7, 1)),
-/*    STORM_COLLAPSE(COMBAT, BLADE_TEMPEST, 1, v(8, 1)),
+    STORM_COLLAPSE(COMBAT, BLADE_TEMPEST, 1, v(8, 1)),
     DUAL_WIELDING(COMBAT, null, 1, v(1, 3)),
     RELENTLESS_ASSAULT(COMBAT, DUAL_WIELDING, 1, v(1, 4)),
     WEAPON_ARTISTRY(COMBAT, RELENTLESS_ASSAULT, 1, v(1, 5)),
-    SHIELD_CHARGE(COMBAT, null, 1, v(2, 3)),
-    VENGEANCE(COMBAT, null, 1, v(2, 4)),
+//    SHIELD_CHARGE(COMBAT, null, 1, v(2, 3)),//TBD, stepassist attribute is coming in 1.20.5
+/*    VENGEANCE(COMBAT, null, 1, v(2, 4)),
     FENDERS_GRASP(COMBAT, null, 1, v(2, 5)),
 */    
     
